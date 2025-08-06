@@ -1,4 +1,4 @@
-module github.com/srivastavya/goober
+module github.com/jerkeyray/goober
 
 go 1.24.1
 

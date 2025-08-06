@@ -4,7 +4,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/srivastavya/goober/internal"
+	"github.com/jerkeyray/goober/internal"
 )
 
 // TUI holds the Bubble Tea program and integrates with the runner
