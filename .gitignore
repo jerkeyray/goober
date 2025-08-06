@@ -1,7 +1,7 @@
 # Ignore build artifacts
-goober
-app
-test/app
+/goober
+/app
+/test/app
 *.exe
 *.exe~
 *.dll
