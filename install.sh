@@ -2,7 +2,7 @@
 # Goober Installation Script
 set -e
 
-REPO="srivastavya/goober"
+REPO="jerkeyray/goober"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
 # Colors for output

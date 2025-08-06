@@ -1,4 +1,4 @@
-# GitHub Actions workflow for building and releasing Goober
+# .github/workflows/release.yml
 name: Build and Release
 
 on:
@@ -11,42 +11,33 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./goober
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: goober
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.24"
+          go-version: "1.21" # use whatever Go version you like
 
       - name: Run tests
-        run: go test -v ./...
+        run: go test ./...
 
-      - name: Build
+      - name: Build binary
         run: go build -v ./cmd/goober
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./goober
     steps:
       - uses: actions/checkout@v4
         with:
-          path: goober
           fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.24"
+          go-version: "1.21"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5

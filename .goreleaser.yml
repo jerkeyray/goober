@@ -46,8 +46,8 @@ changelog:
 
 brews:
   - tap:
-      owner: srivastavya
+      owner: jerkeyray
       name: homebrew-tap
-    homepage: "https://github.com/srivastavya/goober"
+    homepage: "https://github.com/jerkeyray/goober"
     description: "Go development watcher with beautiful TUI"
     license: "MIT"
