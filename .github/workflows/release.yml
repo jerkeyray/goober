@@ -1,33 +1,32 @@
-# .github/workflows/release.yml
-
 name: Release
 
 on:
   push:
     tags:
-      - "v*"
-
-permissions:
-  contents: write
-  issues: write
+      - 'v*'
 
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.22
+          go-version: '1.22'
 
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean
 
+      - name: Check Go build works
+        run: go build -v ./cmd/goober
+
+      - name: Run GoReleaser
+        run: goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
