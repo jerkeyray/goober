@@ -70,10 +70,3 @@ When using the terminal UI:
 - `↑`/`↓` or `j`/`k` — Scroll logs
 - `PgUp` / `PgDown` — Scroll a page up/down
 
-## 📄 License
-
-MIT
-
----
-
-Made with rage and caffeine by [@jerkeyray](https://github.com/jerkeyray)
