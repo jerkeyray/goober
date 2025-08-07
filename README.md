@@ -7,7 +7,7 @@ A badass file watcher for Go projects that automatically rebuilds and restarts y
 Install Goober globally:
 
 ```bash
-go install github.com/jerkeyray/goober/cmd/goober@latest
+go install github.com/jerkeyray/goober@latest
 ```
 
 Make sure your Go bin directory (usually `$HOME/go/bin`) is in your `PATH`. If not:
