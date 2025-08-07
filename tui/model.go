@@ -11,9 +11,21 @@ import (
 type BuildStatus int
 
 const (
-	BuildStatusUnknown BuildStatus = iota
-	BuildStatusSuccess
-	BuildStatusFailed
+	StatusWatching BuildStatus = iota
+	StatusBuilding
+	StatusSuccess
+	StatusError
+)
+
+// LogType determines styling for log entries
+type LogType int
+
+const (
+	LogTypeInfo LogType = iota
+	LogTypeSuccess
+	LogTypeError
+	LogTypeRestart
+	LogTypeEvent
 )
 
 // LogEntry represents a single log entry with timestamp and styling
@@ -23,36 +35,26 @@ type LogEntry struct {
 	Timestamp time.Time
 }
 
-// LogType determines styling for log entries
-type LogType int
-
-const (
-	LogTypeInfo LogType = iota
-	LogTypeSuccess
-	LogTypeError
-	LogTypeWarning
-)
-
 // Model represents the state of our TUI application
 type Model struct {
 	// Status bar data
-	watchDir        string
+	watchDir         string
 	debounceDuration time.Duration
-	restartCount    int
-	buildStatus     BuildStatus
-	
+	restartCount     int
+	status           BuildStatus
+
 	// Logs
 	logs         []LogEntry
 	logViewStart int // For scrolling
-	
+
 	// UI state
-	width         int
-	height        int
-	ready         bool
-	
+	width  int
+	height int
+	ready  bool
+
 	// Styles
 	styles Styles
-	
+
 	// Channel for receiving log messages
 	logChan chan LogMessage
 }
@@ -68,11 +70,17 @@ type Styles struct {
 	StatusBar       lipgloss.Style
 	StatusBarKey    lipgloss.Style
 	StatusBarValue  lipgloss.Style
+	StatusWatching  lipgloss.Style
+	StatusBuilding  lipgloss.Style
+	StatusSuccess   lipgloss.Style
+	StatusError     lipgloss.Style
 	LogPanel        lipgloss.Style
+	LogTimestamp    lipgloss.Style
 	LogEntryInfo    lipgloss.Style
 	LogEntrySuccess lipgloss.Style
 	LogEntryError   lipgloss.Style
-	LogEntryWarning lipgloss.Style
+	LogEntryRestart lipgloss.Style
+	LogEntryEvent   lipgloss.Style
 	HelpBar         lipgloss.Style
 	HelpKey         lipgloss.Style
 	HelpDesc        lipgloss.Style
@@ -81,63 +89,60 @@ type Styles struct {
 // NewModel creates a new model with default values
 func NewModel(watchDir string, debounceDuration time.Duration) Model {
 	return Model{
-		watchDir:        watchDir,
+		watchDir:         watchDir,
 		debounceDuration: debounceDuration,
-		restartCount:    0,
-		buildStatus:     BuildStatusUnknown,
-		logs:            []LogEntry{},
-		logViewStart:    0,
-		width:          80,
-		height:         24,
-		ready:          false,
-		styles:         makeStyles(),
-		logChan:        make(chan LogMessage, 100),
+		restartCount:     0,
+		status:           StatusWatching,
+		logs:             []LogEntry{},
+		logViewStart:     0,
+		width:            80,
+		height:           24,
+		ready:            false,
+		styles:           makeStyles(),
+		logChan:          make(chan LogMessage, 100),
 	}
 }
 
-// makeStyles creates the styling configuration
+// makeStyles creates the styling configuration based on the Tokyo Night theme
 func makeStyles() Styles {
+	// Tokyo Night Color Palette
+	bg := lipgloss.Color("#1a1b26")
+	fg := lipgloss.Color("#c0caf5")
+	darkFg := lipgloss.Color("#a9b1d6")
+	comment := lipgloss.Color("#565f89")
+	blue := lipgloss.Color("#7aa2f7")
+	purple := lipgloss.Color("#bb9af7")
+	green := lipgloss.Color("#9ece6a")
+	red := lipgloss.Color("#f7768e")
+	yellow := lipgloss.Color("#e0af68")
+	orange := lipgloss.Color("#ff9e64")
+
 	return Styles{
 		StatusBar: lipgloss.NewStyle().
-			Background(lipgloss.Color("#7C3AED")).
-			Foreground(lipgloss.Color("#FFFFFF")).
+			Background(lipgloss.Color("#1f2335")).
+			Foreground(darkFg).
 			Padding(0, 1),
-		
-		StatusBarKey: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#A78BFA")).
-			Bold(true),
-		
-		StatusBarValue: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFFFF")),
-		
+		StatusBarKey:   lipgloss.NewStyle().Foreground(purple).Bold(true),
+		StatusBarValue: lipgloss.NewStyle().Foreground(fg),
+		StatusWatching: lipgloss.NewStyle().Foreground(blue),
+		StatusBuilding: lipgloss.NewStyle().Foreground(yellow),
+		StatusSuccess:  lipgloss.NewStyle().Foreground(green),
+		StatusError:    lipgloss.NewStyle().Foreground(red),
+
 		LogPanel: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#7C3AED")).
+			BorderForeground(purple).
 			Padding(1, 2),
-		
-		LogEntryInfo: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#6B7280")),
-		
-		LogEntrySuccess: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#10B981")),
-		
-		LogEntryError: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#EF4444")),
-		
-		LogEntryWarning: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#F59E0B")),
-		
-		HelpBar: lipgloss.NewStyle().
-			Background(lipgloss.Color("#374151")).
-			Foreground(lipgloss.Color("#FFFFFF")).
-			Padding(0, 1),
-		
-		HelpKey: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#60A5FA")).
-			Bold(true),
-		
-		HelpDesc: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#D1D5DB")),
+		LogTimestamp:    lipgloss.NewStyle().Foreground(comment),
+		LogEntryInfo:    lipgloss.NewStyle().Foreground(darkFg),
+		LogEntrySuccess: lipgloss.NewStyle().Foreground(green),
+		LogEntryError:   lipgloss.NewStyle().Foreground(red),
+		LogEntryRestart: lipgloss.NewStyle().Foreground(orange),
+		LogEntryEvent:   lipgloss.NewStyle().Foreground(blue),
+
+		HelpBar:  lipgloss.NewStyle().Background(bg).Foreground(darkFg).Padding(0, 1),
+		HelpKey:  lipgloss.NewStyle().Foreground(blue).Bold(true),
+		HelpDesc: lipgloss.NewStyle().Foreground(comment),
 	}
 }
 
@@ -149,7 +154,7 @@ func (m *Model) AddLog(message string, logType LogType) {
 		Timestamp: time.Now(),
 	}
 	m.logs = append(m.logs, entry)
-	
+
 	// Auto-scroll to bottom when new logs are added
 	maxVisible := m.getMaxVisibleLogs()
 	if len(m.logs) > maxVisible {
@@ -170,7 +175,7 @@ func (m *Model) IncrementRestartCount() {
 
 // SetBuildStatus updates the build status
 func (m *Model) SetBuildStatus(status BuildStatus) {
-	m.buildStatus = status
+	m.status = status
 }
 
 // GetLogChan returns the channel for sending log messages
@@ -188,18 +193,18 @@ func (m *Model) getMaxVisibleLogs() int {
 func (m *Model) getVisibleLogs() []LogEntry {
 	maxVisible := m.getMaxVisibleLogs()
 	totalLogs := len(m.logs)
-	
+
 	if totalLogs == 0 {
 		return []LogEntry{}
 	}
-	
+
 	start := m.logViewStart
 	end := start + maxVisible
-	
+
 	if end > totalLogs {
 		end = totalLogs
 	}
-	
+
 	return m.logs[start:end]
 }
 
@@ -217,41 +222,57 @@ func (m *Model) scrollDown() {
 	if maxStart < 0 {
 		maxStart = 0
 	}
-	
+
 	if m.logViewStart < maxStart {
 		m.logViewStart++
 	}
 }
 
-// formatLogEntry formats a log entry for display
-func (m *Model) formatLogEntry(entry LogEntry) string {
-	timestamp := entry.Timestamp.Format("15:04:05")
-	
-	var style lipgloss.Style
+// formatLogEntry styles a single log entry
+func (m Model) formatLogEntry(entry LogEntry) string {
+	timestamp := m.styles.LogTimestamp.Render(entry.Timestamp.Format("15:04:05.000"))
+	var logType lipgloss.Style
+	var typeString string
+
 	switch entry.Type {
+	case LogTypeInfo:
+		logType = m.styles.LogEntryInfo
+		typeString = "INFO"
 	case LogTypeSuccess:
-		style = m.styles.LogEntrySuccess
+		logType = m.styles.LogEntrySuccess
+		typeString = "SUCCESS"
 	case LogTypeError:
-		style = m.styles.LogEntryError
-	case LogTypeWarning:
-		style = m.styles.LogEntryWarning
+		logType = m.styles.LogEntryError
+		typeString = "ERROR"
+	case LogTypeRestart:
+		logType = m.styles.LogEntryRestart
+		typeString = "RESTART"
+	case LogTypeEvent:
+		logType = m.styles.LogEntryEvent
+		typeString = "EVENT"
 	default:
-		style = m.styles.LogEntryInfo
+		logType = m.styles.LogEntryInfo
+		typeString = "LOG"
 	}
-	
-	return fmt.Sprintf("%s %s", 
-		lipgloss.NewStyle().Foreground(lipgloss.Color("#9CA3AF")).Render(timestamp),
-		style.Render(entry.Message))
+
+	typeLabel := logType.Copy().Bold(true).Render(fmt.Sprintf("[%s]", typeString))
+	message := logType.Render(entry.Message)
+
+	return fmt.Sprintf("%s %s %s", timestamp, typeLabel, message)
 }
 
-// buildStatusString returns a formatted string for the build status
-func (m *Model) buildStatusString() string {
-	switch m.buildStatus {
-	case BuildStatusSuccess:
-		return m.styles.LogEntrySuccess.Render("Success")
-	case BuildStatusFailed:
-		return m.styles.LogEntryError.Render("Failed")
+// buildStatusString returns a styled string for the current build status
+func (m Model) buildStatusString() string {
+	switch m.status {
+	case StatusWatching:
+		return m.styles.StatusWatching.Render("Watching")
+	case StatusBuilding:
+		return m.styles.StatusBuilding.Render("Building...")
+	case StatusSuccess:
+		return m.styles.StatusSuccess.Render("Running")
+	case StatusError:
+		return m.styles.StatusError.Render("Build Failed")
 	default:
-		return m.styles.StatusBarValue.Render("Unknown")
+		return "Unknown"
 	}
 }

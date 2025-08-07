@@ -1,190 +1,79 @@
-# Goober - Go Development Watcher with Beautiful TUI 🎯
+# Goober
 
-A modern file watcher that automatically rebuilds and restarts your Go applications with a beautiful Bubble Tea terminal interface.
+A badass file watcher for Go projects that automatically rebuilds and restarts your application. It comes with a slick terminal UI to show logs and build status.
 
-![Goober Demo](https://raw.githubusercontent.com/yourusername/goober/main/demo.gif)
+## 🚀 Installation
 
-## ✨ Features
-
-- 🔄 **Auto-reload** - Watches `.go` files and restarts on changes
-- 🎨 **Beautiful TUI** - Modern terminal interface with real-time logs
-- 🌈 **Color-coded output** - Success, error, and warning messages
-- 📜 **Scrollable logs** - Navigate through build and runtime output
-- ⚡ **Manual restart** - Force restart with a keypress
-- 🧹 **Log management** - Clear logs on demand
-- 🎛️ **Configurable** - Customizable build/run commands and debounce timing
-
-## 🚀 Quick Start
-
-### Global Installation
+Install Goober globally:
 
 ```bash
-go install github.com/srivastavya/goober/cmd/goober@latest
+go install github.com/jerkeyray/goober/cmd/goober@latest
 ```
 
-### Usage in Your Go Project
+Make sure your Go bin directory (usually `$HOME/go/bin`) is in your `PATH`. If not:
 
 ```bash
-# Navigate to your Go project
-cd your-go-project
+export PATH="$HOME/go/bin:$PATH"
+```
 
-# Start with default settings (builds to 'app', runs './app')
+Add that to your `.zshrc`, `.bashrc`, or whatever shell config you use.
+
+## ⚡ Quick Start
+
+Navigate to your Go project and just run:
+
+```bash
+goober
+```
+
+It will:
+
+- Watch for file changes
+- Rebuild the project
+- Restart your app
+- Show logs in a terminal UI
+
+### Examples
+
+```bash
+# Watch current directory and use default build/run
 goober
 
-# Custom build and run commands
-goober -build "go build -o myserver ./cmd/server" -run "./myserver --port 8080"
+# Watch a specific directory
+goober --dir ./myapp
 
-# Watch specific directory
-goober -dir ./src -debounce 1s
+# Use custom build and run commands
+goober --build "go build -o myapp" --run "./myapp"
+
+# Set a custom debounce time (e.g., 1 second)
+goober --debounce 1s
+
+# Disable the TUI, use plain logs
+goober --no-tui
 ```
 
-## 📖 Installation Options
+## 🛠️ CLI Flags
 
-### 1. Install Globally (Recommended)
+- `--dir <path>` — Directory to watch (default: `.`)
+- `--build <command>` — Build command (default: `go build -o app`)
+- `--run <command>` — Run command (default: `./app`)
+- `--debounce <duration>` — Delay after file changes before restarting (default: `750ms`)
+- `--no-tui` — Disable the terminal UI and use plain output
 
-```bash
-go install github.com/srivastavya/goober/cmd/goober@latest
-```
+## 🎮 TUI Keybindings
 
-Then use `goober` anywhere in your terminal.
+When using the terminal UI:
 
-### 2. Install in Project
+- `q` / `Ctrl+C` — Quit
+- `r` — Force manual restart
+- `c` — Clear logs
+- `↑`/`↓` or `j`/`k` — Scroll logs
+- `PgUp` / `PgDown` — Scroll a page up/down
 
-Add to your project's `tools.go`:
+## 📄 License
 
-```go
-//go:build tools
+MIT
 
-package tools
+---
 
-import _ "github.com/srivastavya/goober/cmd/goober"
-```
-
-Then install:
-
-```bash
-go mod tidy
-go install github.com/srivastavya/goober/cmd/goober
-```
-
-### 3. Download Binary
-
-Download from [releases page](https://github.com/yourusername/goober/releases) and add to PATH.
-
-### 4. Build from Source
-
-```bash
-git clone https://github.com/srivastavya/goober.git
-cd goober
-go build -o goober ./cmd/goober
-sudo mv goober /usr/local/bin/
-```
-
-## Usage
-
-### TUI Mode (Default)
-
-```bash
-# Watch current directory with default settings
-./goober
-
-# Watch specific directory with custom commands
-./goober -dir ./myapp -build "go build -o myapp" -run "./myapp"
-
-# Custom debounce duration
-./goober -debounce 1s
-```
-
-### CLI Mode
-
-```bash
-# Disable TUI for simple terminal output
-./goober -no-tui
-```
-
-## TUI Interface
-
-### Status Bar (Top)
-
-- **Directory**: Currently watched directory
-- **Debounce**: File change debounce duration
-- **Restarts**: Number of automatic restarts
-- **Build**: Last build status (Success/Failed/Unknown)
-
-### Log Panel (Middle)
-
-- Real-time build and application output
-- Color-coded messages:
-  - 🟢 **Green**: Success messages
-  - 🔴 **Red**: Error messages
-  - 🟡 **Yellow**: Warning messages
-  - ⚪ **Gray**: Info messages
-- Scrollable with timestamps
-- Shows scroll position when logs exceed screen
-
-### Help Bar (Bottom)
-
-- **q / Ctrl+C**: Quit application
-- **r**: Force manual restart
-- **c**: Clear all logs
-- **↑/↓ or j/k**: Scroll through logs
-- **PgUp/PgDown**: Fast scroll
-
-## Command Line Options
-
-- `-dir string`: Directory to watch (default: current directory)
-- `-build string`: Build command (default: "go build -o app")
-- `-run string`: Run command (default: "./app")
-- `-debounce duration`: Debounce duration for file changes (default: 750ms)
-- `-no-tui`: Disable TUI and use simple CLI output
-
-## Examples
-
-### Basic Web Server
-
-```bash
-./goober -dir ./server -build "go build -o server ./cmd/server" -run "./server"
-```
-
-### With Custom Build Tags
-
-```bash
-./goober -build "go build -tags dev -o app" -run "./app --dev"
-```
-
-### Microservice Development
-
-```bash
-./goober -dir ./service -debounce 1s -build "go build -o service" -run "./service --port 8080"
-```
-
-## Architecture
-
-The application is structured into several packages:
-
-- `cmd/goober/`: Main application entry point
-- `internal/`: Core functionality (runner and watcher)
-- `tui/`: Bubble Tea terminal user interface
-  - `model.go`: Application state and data structures
-  - `view.go`: UI rendering and layout
-  - `update.go`: Event handling and state updates
-  - `tui.go`: Integration layer between TUI and backend
-
-## Development
-
-The TUI is built using:
-
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea) - Terminal UI framework
-- [Lipgloss](https://github.com/charmbracelet/lipgloss) - Styling and layout
-
-To contribute:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with both TUI and CLI modes
-5. Submit a pull request
-
-## License
-
-[Your License Here]
+Made with rage and caffeine by [@jerkeyray](https://github.com/jerkeyray)

@@ -75,28 +75,26 @@ func (t *TUI) handleLog(message string, isError bool) {
 	if isError {
 		logType = LogTypeError
 	}
-	
+
 	// Check for specific patterns to determine log type
 	if contains(message, []string{"successful", "success", "✓", "completed"}) {
 		logType = LogTypeSuccess
-	} else if contains(message, []string{"warning", "warn", "⚠"}) {
-		logType = LogTypeWarning
 	} else if contains(message, []string{"error", "failed", "fail", "✗", "panic"}) {
 		logType = LogTypeError
 	}
-	
+
 	// Send log message through channel
 	select {
 	case t.model.logChan <- LogMessage{Message: message, Type: logType}:
 	default:
 		// Channel is full, skip this message
 	}
-	
+
 	// Update build status based on message content
 	if contains(message, []string{"build successful", "build completed"}) {
-		t.program.Send(BuildStatusMsg{Status: BuildStatusSuccess})
+		t.program.Send(BuildStatusMsg{Status: StatusSuccess})
 	} else if contains(message, []string{"build failed", "build error"}) {
-		t.program.Send(BuildStatusMsg{Status: BuildStatusFailed})
+		t.program.Send(BuildStatusMsg{Status: StatusError})
 	}
 }
 
